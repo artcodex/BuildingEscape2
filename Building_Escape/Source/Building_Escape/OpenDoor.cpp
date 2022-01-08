@@ -21,9 +21,8 @@ UOpenDoor::UOpenDoor()
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
-	InitialYaw = GetOwner()->GetActorRotation().Yaw;
-	CurrentYaw = InitialYaw;
-	TargetYaw += InitialYaw; //TargetYaw = TargetYaw + InitialYaw;
+	initialYaw = GetOwner()->GetActorRotation().Yaw;
+	targetYaw += initialYaw; //TargetYaw = TargetYaw + InitialYaw;
 
 	if(!PressurePlate)
 	{
@@ -38,17 +37,45 @@ void UOpenDoor::BeginPlay()
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	auto playerController = this->GetPlayerController();
 	
-	if (PressurePlate && PressurePlate->IsOverlappingActor(ActorThatOpens))
+	if (PressurePlate)
 	{
-		OpenDoor(DeltaTime);
-	}	
+		if (PressurePlate->IsOverlappingActor(ActorThatOpens) || playerController->WasInputKeyJustPressed(EKeys::O)) {
+			targetYaw = initialYaw + openYaw;
+			currentSpeed = openSpeed;
+			doorLastOpened = GetWorld()->GetTimeSeconds();
+		} else {
+			float currentTime = GetWorld()->GetTimeSeconds();
+			if (currentTime-doorLastOpened >= doorCloseDelay) {
+				targetYaw = initialYaw;
+				currentSpeed = closeSpeed;
+			}
+		}
+			
+		SwingDoor(DeltaTime);
+	}
 }
 
-void UOpenDoor::OpenDoor(float DeltaTime)
+void UOpenDoor::SwingDoor(float DeltaTime)
 {
-	CurrentYaw = FMath::Lerp(CurrentYaw, TargetYaw, DeltaTime * 0.5f);
-	FRotator DoorRotation = GetOwner()->GetActorRotation();
-	DoorRotation.Yaw = CurrentYaw;
-	GetOwner()->SetActorRotation(DoorRotation);	
+	float currentYaw = GetOwner()->GetActorRotation().Yaw;
+
+	if (FMath::Abs(currentYaw - targetYaw) > 0.001f) {
+		float nextYaw = FMath::FInterpTo(currentYaw, targetYaw, DeltaTime, currentSpeed);
+
+		FRotator newRotator = FRotator(0.f, nextYaw, 0.f);
+		GetOwner()->SetActorRotation(newRotator);
+	}
+}
+
+APlayerController* UOpenDoor::GetPlayerController() {
+	UWorld* world = GetWorld();
+	APlayerController* playerController = NULL;
+	for (FConstPlayerControllerIterator Iterator = world->GetPlayerControllerIterator(); Iterator; ++Iterator) {
+		playerController = Iterator->Get();
+		break;
+	}
+
+	return playerController;
 }
