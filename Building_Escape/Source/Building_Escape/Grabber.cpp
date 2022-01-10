@@ -1,9 +1,9 @@
 // Copyright Michael Bridges 2019
 
+#include "Grabber.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "DrawDebugHelpers.h"
-#include "Grabber.h"
 
 #define OUT
 
@@ -23,15 +23,11 @@ void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	physicsHandleComponent = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
+	FindPhysicsHandle();
+	SetupInputComponent();
+}
 
-	if (physicsHandleComponent) {
-		//Physics handle is bound correctly.
-	} else {
-		UE_LOG(LogTemp, Error, TEXT("Couldn't find physics handle on %s"), *GetOwner()->GetName());
-	}
-
+void UGrabber::SetupInputComponent() {
 	inputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (inputComponent) {
 		inputComponent->BindAction("Grab", EInputEvent::IE_Pressed, this, &UGrabber::GrabPressed);
@@ -40,12 +36,51 @@ void UGrabber::BeginPlay()
 	}
 }
 
+void UGrabber::FindPhysicsHandle() {
+	// ...
+	physicsHandleComponent = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
+
+	if (physicsHandleComponent) {
+		//Physics handle is bound correctly.
+	} else {
+		UE_LOG(LogTemp, Error, TEXT("Couldn't find physics handle on %s"), *GetOwner()->GetName());
+	}
+}
+
 void UGrabber::GrabPressed() {
 	UE_LOG(LogTemp, Warning, TEXT("Grabber press"));
+
+	// TODO only when action is triggered. Try and reach any actors with physics body collision channel set
+		FVector location; 
+	FRotator rotation;
+	APlayerController *playerController = GetWorld()->GetFirstPlayerController();
+	playerController->GetPlayerViewPoint(OUT location, OUT rotation);
+
+	// Line trace
+	FVector lineTraceBegin = location;
+	FVector lineTraceEnd = location + (rotation.Vector() * reach);
+
+	FHitResult hitResult = GetFirstPhysicsBodyInReach();
+	UPrimitiveComponent *componentToGrab = hitResult.GetComponent();
+
+	if (hitResult.GetActor()) {
+		physicsHandleComponent->GrabComponentAtLocation
+			(
+				componentToGrab,
+				NAME_None,
+				lineTraceEnd
+			);
+	}
+
+	// If we hit something attach physics handle
+	// TODO attach physics handle
 }
 
 void UGrabber::GrabReleased() {
 	UE_LOG(LogTemp, Warning, TEXT("Grabber released"));
+
+	// TODO remove/release physics handle
+	physicsHandleComponent->ReleaseComponent();
 }
 
 // Called every frame
@@ -53,16 +88,28 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
-	// Get players viewpoint
 	FVector location; 
 	FRotator rotation;
 	APlayerController *playerController = GetWorld()->GetFirstPlayerController();
 	playerController->GetPlayerViewPoint(OUT location, OUT rotation);
 
-	// Logging out to test
-	//UE_LOG(LogTemp, Warning, TEXT("Viewpoint Location information - %s"), *location.ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("Viewpoint Rotation information - %s"), *rotation.ToString());
+	// Line trace
+	FVector lineTraceBegin = location;
+	FVector lineTraceEnd = location + (rotation.Vector() * reach);
+
+	if (physicsHandleComponent->GrabbedComponent) {
+		physicsHandleComponent->SetTargetLocation(lineTraceEnd);
+	}
+
+	// If the physic handle is attahched.
+	// Move the object we are holding.
+
+	// ...
+	// Get players viewpoint
+	/*FVector location; 
+	FRotator rotation;
+	APlayerController *playerController = GetWorld()->GetFirstPlayerController();
+	playerController->GetPlayerViewPoint(OUT location, OUT rotation);
 
 	// Debug draw line trace
 	FVector lineTraceBegin = location;
@@ -77,7 +124,22 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 			0.f,
 			0,
 			5.f);
-	}
+	}*/
+
+	// See what we hit
+}
+
+
+FHitResult UGrabber::GetFirstPhysicsBodyInReach() const {
+	// Get players viewpoint
+	FVector location; 
+	FRotator rotation;
+	APlayerController *playerController = GetWorld()->GetFirstPlayerController();
+	playerController->GetPlayerViewPoint(OUT location, OUT rotation);
+
+	// Line trace
+	FVector lineTraceBegin = location;
+	FVector lineTraceEnd = location + (rotation.Vector() * reach);
 
 	// Ray-cast out to turn certain distance (Reach)
 	FHitResult hitResult;
@@ -95,6 +157,5 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		UE_LOG(LogTemp, Warning, TEXT("You can grab %s"), *hitActor->GetName());
 	}
 
-	// See what we hit
+	return hitResult;
 }
-

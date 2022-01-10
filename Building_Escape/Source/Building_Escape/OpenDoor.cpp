@@ -1,8 +1,8 @@
 // Copyright Michael Bridges 2019
 
+#include "OpenDoor.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
-#include "OpenDoor.h"
 #include "GameFramework/Actor.h"
 
 
