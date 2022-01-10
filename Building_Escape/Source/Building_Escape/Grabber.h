@@ -27,7 +27,7 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere)	
-	float reach = 100.f;
+	float reach = 150.f;
 
 	UPROPERTY(EditAnywhere)
 	bool isDebugEnabled = true;	
@@ -42,4 +42,6 @@ private:
 
 	// Return the first Actor within reach with physics body
 	FHitResult GetFirstPhysicsBodyInReach() const;
+	TTuple<FVector, FRotator> GetLineTraceBegin() const;
+	FVector GetLineTraceEnd() const;
 };

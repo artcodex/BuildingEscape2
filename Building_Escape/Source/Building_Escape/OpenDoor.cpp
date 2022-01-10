@@ -4,7 +4,10 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
 
+
+#define OUT
 
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
@@ -41,7 +44,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	
 	if (PressurePlate)
 	{
-		if (PressurePlate->IsOverlappingActor(ActorThatOpens) || playerController->WasInputKeyJustPressed(EKeys::O)) {
+		if (TotalMassOfActors() > 50.f) { //PressurePlate->IsOverlappingActor(ActorThatOpens)) {
 			targetYaw = initialYaw + openYaw;
 			currentSpeed = openSpeed;
 			doorLastOpened = GetWorld()->GetTimeSeconds();
@@ -55,6 +58,22 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 			
 		SwingDoor(DeltaTime);
 	}
+}
+
+float UOpenDoor::TotalMassOfActors() {
+	float totalMass = 0.f;
+
+	TArray<AActor*> overlappingActors;
+	PressurePlate->GetOverlappingActors(OUT overlappingActors);
+
+	for(AActor *actor : overlappingActors) {
+		UPrimitiveComponent *primitiveComp = actor->FindComponentByClass<UPrimitiveComponent>();
+		totalMass += primitiveComp->GetMass();
+	}
+
+	//UE_LOG(LogTemp, Warning, TEXT("Total mass is %.2f"), totalMass);
+
+	return totalMass;
 }
 
 void UOpenDoor::SwingDoor(float DeltaTime)

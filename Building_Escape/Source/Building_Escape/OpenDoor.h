@@ -51,7 +51,11 @@ private:
 	UPROPERTY(EditAnywhere)
 	float doorCloseDelay = 2.f;
 
+	UPROPERTY(EditAnywhere)
+	float doorOpenMass = 50.f;
+
 private: 
 	void SwingDoor(float DeltaTime);
 	APlayerController *GetPlayerController();
+	float TotalMassOfActors();
 };
