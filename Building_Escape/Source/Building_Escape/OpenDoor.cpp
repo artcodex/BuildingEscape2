@@ -7,6 +7,7 @@
 #include "Components/PrimitiveComponent.h"
 
 
+
 #define OUT
 
 // Sets default values for this component's properties
@@ -33,7 +34,26 @@ void UOpenDoor::BeginPlay()
 	}
 
 	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
+	FindAudioComponent();
 }
+
+void UOpenDoor::FindAudioComponent() {
+	audioComponent = GetOwner()->FindComponentByClass<UAudioComponent>();
+
+	if (!audioComponent) {
+		UE_LOG(LogTemp, Error, TEXT("Cannot find audio component on %s"), *GetOwner()->GetName());
+	}
+}
+
+ void UOpenDoor::PlayDoorSound(bool isOpening) {
+	 if (audioComponent && isOpening != isDoorOpen) {
+		 if (audioComponent->IsPlaying()) {
+			 audioComponent->Stop();
+		 }
+
+		 audioComponent->Play();
+	 }
+ }
 
 
 // Called every frame
@@ -44,15 +64,21 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	
 	if (PressurePlate)
 	{
-		if (TotalMassOfActors() > 50.f) { //PressurePlate->IsOverlappingActor(ActorThatOpens)) {
+		if (TotalMassOfActors() >= doorOpenMass) { 
 			targetYaw = initialYaw + openYaw;
 			currentSpeed = openSpeed;
 			doorLastOpened = GetWorld()->GetTimeSeconds();
+
+			PlayDoorSound(true);
+			isDoorOpen = true;
 		} else {
 			float currentTime = GetWorld()->GetTimeSeconds();
 			if (currentTime-doorLastOpened >= doorCloseDelay) {
 				targetYaw = initialYaw;
 				currentSpeed = closeSpeed;
+
+				PlayDoorSound(false);
+				isDoorOpen = false;
 			}
 		}
 			

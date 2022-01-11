@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Engine/TriggerVolume.h"
+#include "Components/AudioComponent.h"
 #include "OpenDoor.generated.h"
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -54,8 +55,14 @@ private:
 	UPROPERTY(EditAnywhere)
 	float doorOpenMass = 50.f;
 
+	UAudioComponent* audioComponent;
+	bool isDoorOpen = false;
+
 private: 
 	void SwingDoor(float DeltaTime);
 	APlayerController *GetPlayerController();
 	float TotalMassOfActors();
+	void FindAudioComponent();
+
+	void PlayDoorSound(bool isOpening);
 };
